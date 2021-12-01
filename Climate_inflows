@@ -1,0 +1,51 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
+def new_flows(data, Q):
+  Inflow = (pd.DataFrame(data['inflow'])).to_numpy()
+  Inflow = Inflow[:,0]
+  SEASONS = ['Winter', 'Spring', 'Summer', 'Autumn']
+  P = np.array([0.7856, 3.0143, 5.8489, 2.7696])
+  Q_per = np.divide(Q, P) * 100
+  I_per = (1.5 * Q_per) - 2.2
+  I = np.zeros(len(Inflow))
+  for t in range(len(Inflow)):
+    if data['month'][t] == 12 or data['month'][t] == 1 or data['month'][t] == 2:
+      I[t] = Inflow[t] * ( 1 + I_per[0] / 100)
+    if data['month'][t] == 3 or data['month'][t] == 4 or data['month'][t] == 5:
+      I[t] = Inflow[t] * ( 1 + I_per[1] / 100)
+    if data['month'][t] == 6 or data['month'][t] == 7 or data['month'][t] == 8:
+      I[t] = Inflow[t] * ( 1 + I_per[2] / 100)
+    if data['month'][t] == 9 or data['month'][t] == 10 or data['month'][t] == 11:
+      I[t] = Inflow[t] * ( 1 + I_per[3] / 100)
+  return I
+
+
+data = pd.read_csv("Version 3 Data.csv",
+                   header = None, names = ['date','day','month', 'year', 'inflow'])
+changes = pd.read_csv('Flowchanges.csv', index_col =0)
+changes = changes.to_dict(orient = 'index')
+I = np.zeros((15,3283))
+storage1 = np.zeros((15,3283))
+Q1 = np.zeros((15,3283))
+hydropower = np.zeros((15,3283))
+up_elev = np.zeros((15,3283))
+i = 0
+for key1 in changes.keys():
+  Q = []
+  change = changes[key1]
+  for key2 in change:
+    Q.append(change[key2])
+  Q = np.array(Q)
+  I[i] =new_flows(data, Q) 
+  I[i] = I[i] * (86400 * 10 ** (-9))
+  storage1[i], Q1[i]= tgd.calc_storage(data, I[i])
+  hydropower[i], up_elev[i] = tgd.calc_hydro(storage1[i], Q1[i])
+  hydropower1 = tgd.calc_hydro(storage1[i], Q1[i])
+  print(max(Q1[i]))
+  i += 1
+np.savetxt('Inflow.csv', I, delimiter=",")
+np.savetxt('storage.csv', storage1, delimiter=",")
+np.savetxt('outflow.csv', Q1, delimiter=",")
+np.savetxt('hydropower.csv', hydropower, delimiter=",")
